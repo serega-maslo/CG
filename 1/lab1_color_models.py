@@ -249,7 +249,7 @@ class ColorModelsApp:
             if not 0 <= s <= 100:
                 raise ValueError("S должен быть от 0 до 100%.")
             if not 0 <= v <= 100:
-                raise ValueError("V должен быть от 0 до 100%.").
+                raise ValueError("V должен быть от 0 до 100%.")
             red, green, blue = colorsys.hsv_to_rgb((h % 360.0) / 360.0, s / 100.0, v / 100.0)
             return tuple(round(channel * 255) for channel in (red, green, blue))
 
@@ -260,6 +260,8 @@ class ColorModelsApp:
         """Keep the selected model's numbers instead of round-tripping them via RGB."""
         if model == "RGB":
             return {key: str(int(round(float(values[key])))) for key in ("R", "G", "B")}
+        if model == "CMYK" and float(values["K"]) >= 100:
+            return {"C": "0.0", "M": "0.0", "Y": "0.0", "K": "100.0"}
         keys = ("C", "M", "Y", "K") if model == "CMYK" else ("H", "S", "V")
         return {key: f"{float(values[key]):.1f}" for key in keys}
 
@@ -274,7 +276,6 @@ class ColorModelsApp:
             rgb = self._model_to_rgb(model, values)
             self._apply_rgb(*rgb, preserve_model=model, preserve_values=values)
         except (ValueError, tk.TclError):
-            # Values from a slider are normally always valid. Ignore transient Tcl values.
             return
 
     def _commit_model(self, model: str) -> None:
@@ -343,7 +344,6 @@ class ColorModelsApp:
         preserve_model: str | None = None,
         preserve_values: dict | None = None,
     ) -> None:
-        """Update the preview and other models, optionally preserving one model."""
         r, g, b = (
             max(0, min(255, int(round(value))))
             for value in (r, g, b)
